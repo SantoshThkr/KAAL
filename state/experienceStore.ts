@@ -8,10 +8,14 @@ type ExperienceState = {
   reducedMotion: boolean;
   engineering: boolean;
   scene: SceneName;
+  assetStatus: "checking" | "missing" | "available";
+  activeClip: string;
   setProgress: (progress: number) => void;
   setAudioEnergy: (audioEnergy: number) => void;
   setReducedMotion: (reducedMotion: boolean) => void;
   setEngineering: (engineering: boolean) => void;
+  setAssetStatus: (assetStatus: ExperienceState["assetStatus"]) => void;
+  setActiveClip: (activeClip: string) => void;
 };
 
 export const useExperienceStore = create<ExperienceState>((set) => ({
@@ -20,10 +24,14 @@ export const useExperienceStore = create<ExperienceState>((set) => ({
   reducedMotion: false,
   engineering: false,
   scene: "INTRO",
+  assetStatus: "checking",
+  activeClip: "none",
   setProgress: (progress) => set({ progress, scene: sceneForProgress(progress) }),
   setAudioEnergy: (audioEnergy) => set({ audioEnergy }),
   setReducedMotion: (reducedMotion) => set({ reducedMotion }),
-  setEngineering: (engineering) => set({ engineering })
+  setEngineering: (engineering) => set({ engineering }),
+  setAssetStatus: (assetStatus) => set({ assetStatus }),
+  setActiveClip: (activeClip) => set({ activeClip })
 }));
 
 export function sceneForProgress(progress: number): SceneName {

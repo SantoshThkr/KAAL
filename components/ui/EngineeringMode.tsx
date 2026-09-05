@@ -7,6 +7,7 @@ export function EngineeringMode() {
   const visible = useExperienceStore((state) => state.engineering);
   const progress = useExperienceStore((state) => state.progress);
   const scene = useExperienceStore((state) => state.scene);
+  const activeClip = useExperienceStore((state) => state.activeClip);
   const [fps, setFps] = useState(0);
   const last = useRef(performance.now());
   useEffect(() => {
@@ -24,5 +25,5 @@ export function EngineeringMode() {
     return () => cancelAnimationFrame(id);
   }, []);
   if (!visible) return null;
-  return <aside className="engineering-panel"><strong>KAAL / ENGINEERING</strong><span>FPS <b>{fps || "--"}</b></span><span>DRAW CALLS <b>~24</b></span><span>TRIANGLES <b>~1.8K</b></span><span>ACTIVE PARTICLES <b>0 / PROTOTYPE</b></span><span>SCENE <b>{scene}</b></span><span>TIMELINE <b>{Math.round(progress * 100)}%</b></span><span>GPU EFFECTS <b>BLOOM / VIGNETTE</b></span></aside>;
+  return <aside className="engineering-panel"><strong>KAAL / ENGINEERING</strong><span>FPS <b>{fps || "--"}</b></span><span>DRAW CALLS <b>WEBGL</b></span><span>TRIANGLES <b>WEBGL</b></span><span>ACTIVE PARTICLES <b>DISABLED</b></span><span>SCENE <b>{scene}</b></span><span>ANIMATION <b>{activeClip}</b></span><span>TIMELINE <b>{Math.round(progress * 100)}%</b></span><span>GPU EFFECTS <b>BLOOM / VIGNETTE</b></span></aside>;
 }

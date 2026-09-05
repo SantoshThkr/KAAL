@@ -7,6 +7,7 @@ import { EngineeringMode } from "../ui/EngineeringMode";
 import { ProgressIndicator } from "../ui/ProgressIndicator";
 import { useExperienceStore } from "../../state/experienceStore";
 import { AmbientAudio } from "../../lib/audio";
+import { AssetRequirement } from "../ui/AssetRequirement";
 
 export function Experience() {
   const setProgress = useExperienceStore((state) => state.setProgress);
@@ -60,6 +61,7 @@ export function Experience() {
         {useExperienceStore((state) => state.reducedMotion) ? "MOTION / REDUCED" : "MOTION / FULL"}
       </button>
       <EngineeringMode />
+      <AssetRequirement />
       <div className="scroll-spacer" />
     </main>
   );

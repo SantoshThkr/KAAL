@@ -2,12 +2,12 @@
 
 ## Blocker
 
-No Krishna character asset exists in this repository. The current visible hero is an isolated procedural stand-in, explicitly intended to validate camera, lighting, identity cues, and animation architecture only.
+No Krishna character asset exists in this repository. The procedural Krishna has been removed from the production render path. The application now renders no character until a proper rigged GLB is supplied.
 
 Required drop-in files:
 
-- `public/models/bal-krishna.glb`
-- `public/models/kishore-krishna.glb`
+- `public/models/krishna/bal-krishna.glb`
+- `public/models/krishna/kishore-krishna.glb`
 
 Required clips or morph targets:
 
@@ -17,6 +17,8 @@ Required clips or morph targets:
 - `fluteIdle`
 - `flutePlay`
 - optional `smile`
+
+The loader, material configuration, AnimationMixer controller, and surface-sampling morph utilities are isolated under `components/krishna/`.
 
 - Replace the procedural particle silhouette with a GPU morph target pipeline sourced from Bal Krishna and Kishore Krishna GLBs.
 - Add optimized character and environment assets under `public/models` and `public/textures`.

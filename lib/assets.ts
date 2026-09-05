@@ -1,6 +1,6 @@
 export const KRISHNA_ASSETS = {
-  bal: "/models/bal-krishna.glb",
-  kishore: "/models/kishore-krishna.glb"
+  bal: "/models/krishna/bal-krishna.glb",
+  kishore: "/models/krishna/kishore-krishna.glb"
 } as const;
 
 export const PRODUCTION_ASSET_REQUIREMENTS = [

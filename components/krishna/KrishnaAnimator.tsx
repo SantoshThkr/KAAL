@@ -1,20 +1,56 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
-import { useRef } from "react";
 import * as THREE from "three";
+import { useExperienceStore } from "../../state/experienceStore";
 
-export function KrishnaAnimator({ morph }: { morph: number }) {
-  const feather = useRef<THREE.Mesh>(null);
-  useFrame((state) => {
-    if (!feather.current) return;
-    feather.current.rotation.z = Math.sin(state.clock.elapsedTime * 1.1) * 0.08;
-    feather.current.position.y = 1.35 + morph * 0.18;
-  });
-  return (
-    <mesh ref={feather} position={[0.08, 1.35, -0.02]} rotation={[0.2, 0.3, -0.1]}>
-      <coneGeometry args={[0.035, 0.7, 4]} />
-      <meshStandardMaterial color="#d4a659" emissive="#6b4217" emissiveIntensity={0.15} />
-    </mesh>
-  );
+type KrishnaAnimatorProps = { root: THREE.Object3D; animations: THREE.AnimationClip[] };
+const CLIP_ALIASES: Record<string, string[]> = {
+  idle: ["idle", "breathing", "rest"],
+  flute: ["flute", "fluteplay", "music"],
+  look: ["look", "lookaround", "gaze"],
+  walk: ["walk", "gesture"]
+};
+
+function findClip(clips: THREE.AnimationClip[], requested: string) {
+  const aliases = CLIP_ALIASES[requested] ?? [requested];
+  return clips.find((clip) => aliases.some((alias) => clip.name.toLowerCase().includes(alias)));
+}
+
+export function KrishnaAnimator({ root, animations }: KrishnaAnimatorProps) {
+  const mixer = useRef<THREE.AnimationMixer>();
+  const active = useRef<THREE.AnimationAction>();
+  const setActiveClip = useExperienceStore((state) => state.setActiveClip);
+  const progress = useExperienceStore((state) => state.progress);
+
+  useEffect(() => {
+    mixer.current = new THREE.AnimationMixer(root);
+    const initial = findClip(animations, "idle");
+    if (initial) {
+      active.current = mixer.current.clipAction(initial);
+      active.current.play();
+      setActiveClip(initial.name);
+    } else {
+      setActiveClip("rig loaded / no idle clip");
+    }
+    return () => {
+      mixer.current?.stopAllAction();
+      mixer.current?.uncacheRoot(root);
+    };
+  }, [animations, root, setActiveClip]);
+
+  useEffect(() => {
+    const requested = progress > 0.54 && progress < 0.72 ? "flute" : "idle";
+    const clip = findClip(animations, requested);
+    if (!clip || !mixer.current || active.current?.getClip().uuid === clip.uuid) return;
+    const next = mixer.current.clipAction(clip);
+    next.reset().fadeIn(0.8).play();
+    active.current?.fadeOut(0.8);
+    active.current = next;
+    setActiveClip(clip.name);
+  }, [animations, progress, setActiveClip]);
+
+  useFrame((_, delta) => mixer.current?.update(delta));
+  return null;
 }

@@ -7,3 +7,9 @@ dist/
 .env.*.local
 .DS_Store
 *.log
+*.tsbuildinfo
+# decoders are copied from node_modules by scripts/copy-decoders.mjs
+public/decoders/draco/
+public/decoders/basis/
+# source downloads (Sketchfab zips etc.); the processed GLBs in public/ are what ships
+assets-src/

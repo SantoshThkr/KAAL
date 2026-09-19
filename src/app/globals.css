@@ -1,0 +1,294 @@
+/*
+ * There is no page here. The document is a black stage; the film lives in the canvas. The only DOM is what a cinema
+ * itself has: an entrance, a few controls that leave when the pointer rests, and (later) subtitles.
+ */
+
+:root {
+  color-scheme: dark;
+  --text: rgba(233, 226, 208, 0.8);
+  --text-dim: rgba(233, 226, 208, 0.58);
+  /* Controls sit over any frame, including the brightest haze. A soft shadow keeps them legible without a scrim. */
+  --legible: 0 0 5px rgba(0, 0, 0, 0.85), 0 0 16px rgba(0, 0, 0, 0.65);
+  /* Controls appear only for a few seconds after the pointer moves, so they can be present rather than faint. */
+  --control: rgba(233, 226, 208, 0.88);
+  --gold: #d3ab68;
+  --display: var(--font-serif), "Cormorant Garamond", Georgia, serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --gutter: max(24px, 3.2vw);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  background: #000;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+body {
+  color: var(--text);
+  font-family: var(--display);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.stage {
+  position: fixed;
+  inset: 0;
+  height: 100dvh;
+  background: #000;
+  outline: none;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.stage[data-idle="true"] {
+  cursor: none;
+}
+
+.stage-canvas {
+  position: absolute !important;
+  inset: 0;
+}
+
+.stage-canvas canvas {
+  display: block;
+}
+
+/* ---------------------------------------------------------------- entrance */
+
+.gate {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.1rem;
+  background: #000;
+  transition: opacity 1.8s ease, visibility 0s linear 1.8s;
+}
+
+.gate[data-open="false"] {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.enter {
+  position: relative;
+  padding: 0.9rem 1.5rem;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: 400 clamp(0.72rem, 0.9vw, 0.9rem) / 1 var(--display);
+  letter-spacing: 0.46em;
+  text-indent: 0.46em;
+  cursor: pointer;
+  transition: color 0.6s ease, opacity 0.6s ease;
+}
+
+.enter::after {
+  content: "";
+  position: absolute;
+  left: 1.5rem;
+  right: 1.5rem;
+  bottom: 0.35rem;
+  height: 1px;
+  background: var(--gold);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.enter:not(:disabled):hover::after,
+.enter:focus-visible::after {
+  transform: scaleX(1);
+}
+
+.enter:focus-visible {
+  outline: none;
+  color: #fff;
+}
+
+.enter:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+
+/* While the first frames render, the line under the button breathes: the only sign of life before the film. */
+.gate[data-booting="true"] .enter::after {
+  animation: breathe 2.6s ease-in-out infinite alternate;
+}
+
+@keyframes breathe {
+  from {
+    transform: scaleX(0.05);
+  }
+  to {
+    transform: scaleX(0.45);
+  }
+}
+
+.gate-note {
+  margin: 0;
+  color: var(--text-dim);
+  font: 400 clamp(0.7rem, 0.8vw, 0.82rem) / 1.2 var(--display);
+  letter-spacing: 0.18em;
+  text-indent: 0.18em;
+}
+
+/* ---------------------------------------------------------------- chrome that leaves */
+
+.controls {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.9s ease;
+}
+
+.controls[data-visible="true"],
+.controls:focus-within {
+  opacity: 1;
+}
+
+.controls > * {
+  position: absolute;
+}
+
+.chapter {
+  top: var(--gutter);
+  left: var(--gutter);
+  margin: 0;
+  color: var(--control);
+  font: 400 0.74rem / 1 var(--display);
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  text-shadow: var(--legible);
+}
+
+.controls-left {
+  left: var(--gutter);
+  bottom: calc(var(--gutter) + 6px);
+  display: flex;
+  gap: 1.8rem;
+}
+
+.controls-right {
+  right: var(--gutter);
+  bottom: calc(var(--gutter) + 6px);
+}
+
+.control {
+  padding: 0.5rem 0;
+  border: 0;
+  background: none;
+  color: var(--control);
+  font: 400 0.72rem / 1 var(--display);
+  letter-spacing: 0.3em;
+  cursor: pointer;
+  pointer-events: auto;
+  text-shadow: var(--legible);
+  transition: color 0.4s ease;
+}
+
+.control:hover,
+.control:focus-visible {
+  color: #fff;
+  outline: none;
+}
+
+.control:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.hairline {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: rgba(233, 226, 208, 0.08);
+}
+
+.hairline i {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--gold);
+  opacity: 0.7;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.2s linear;
+}
+
+/* ---------------------------------------------------------------- engineering (E) */
+
+.engineering {
+  position: absolute;
+  top: var(--gutter);
+  right: var(--gutter);
+  z-index: 30;
+  width: min(430px, calc(100vw - 2 * var(--gutter)));
+  padding: 12px 14px;
+  border: 1px solid rgba(233, 226, 208, 0.14);
+  background: rgba(2, 4, 8, 0.78);
+  backdrop-filter: blur(6px);
+  font: 400 11px / 1.5 var(--mono);
+  letter-spacing: 0.02em;
+  pointer-events: none;
+}
+
+.engineering dl {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+}
+
+.engineering dl > div {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 10px;
+}
+
+.engineering dt {
+  color: var(--gold);
+}
+
+.engineering dd {
+  margin: 0;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gate[data-booting="true"] .enter::after {
+    animation: none;
+    transform: scaleX(0.25);
+  }
+  .gate,
+  .controls {
+    transition-duration: 0.01s;
+  }
+}

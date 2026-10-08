@@ -34,12 +34,6 @@ Reverb is added live in the browser (a generated riverbank impulse response), no
 - Author: ezwa
 - Licence: Public domain
 
-## ambience/storm-rain
-
-- Source: [Light Rain Distant Thunder July 5th 2016.wav](https://commons.wikimedia.org/wiki/File:Light_Rain_Distant_Thunder_July_5th_2016.wav)
-- Author: https://freesound.org/people/kvgarlic/
-- Licence: CC0 (http://creativecommons.org/publicdomain/zero/1.0/deed.en)
-
 ## ambience/night-crickets
 
 - Source: [Ringing cricket winding down.ogg](https://commons.wikimedia.org/wiki/File:Ringing_cricket_winding_down.ogg)

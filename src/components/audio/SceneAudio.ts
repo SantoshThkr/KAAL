@@ -73,6 +73,21 @@ export class SceneAudio {
     }
   }
 
+  /** Play a sound once, right now, outside the timeline: the viewer touching the world. */
+  playOnce(id: string, gainDb = -6) {
+    const context = this.manager.getContext();
+    const buffer = this.buffers.get(id);
+    const bus = this.manager.getBus("flute");
+    if (!context || !buffer || !bus) return;
+    const source = context.createBufferSource();
+    source.buffer = buffer;
+    const gain = context.createGain();
+    gain.gain.value = Math.pow(10, gainDb / 20);
+    source.connect(gain).connect(bus);
+    source.start();
+    source.onended = () => gain.disconnect();
+  }
+
   /** Stop everything now (e.g. leaving the page). */
   stopAll() {
     for (const voice of this.voices.values()) this.release(voice, 0.05);

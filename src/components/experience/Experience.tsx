@@ -3,16 +3,17 @@
 import dynamic from "next/dynamic";
 import { Profiler, useEffect, useState, useSyncExternalStore } from "react";
 import { audioManager } from "@/components/audio/AudioManager";
+import { Captions } from "@/components/story/Captions";
 import { Controls } from "@/components/ui/Controls";
 import { EngineeringPanel } from "@/components/ui/EngineeringPanel";
 import { EnterGate } from "@/components/ui/EnterGate";
 import { useCinematicTimeline } from "@/hooks/useCinematicTimeline";
 import { debugCounters } from "@/lib/debugCounters";
 import { isEngineeringAllowed } from "@/lib/env";
-import { loadedCharacters } from "@/components/krishna/characterRegistry";
 import { detectTier, tierFromQuery } from "@/lib/quality";
 import { probeWebGL, type WebGLCaps } from "@/lib/webgl";
-import { clock, film, sceneAudio } from "@/state/film";
+import { clock, compiled, film, sceneAudio } from "@/state/film";
+import { ripple } from "@/components/world/World";
 import { useExperienceStore } from "@/state/experienceStore";
 
 // The Canvas never renders on the server.
@@ -99,7 +100,7 @@ export function Experience() {
   // ?engineering); a normal viewer of a production build never has it.
   useEffect(() => {
     if (!isEngineeringAllowed()) return;
-    (window as unknown as { __KAAL__?: unknown }).__KAAL__ = { film, clock, store: useExperienceStore, audio: audioManager, sceneAudio, debugCounters, characters: loadedCharacters };
+    (window as unknown as { __KAAL__?: unknown }).__KAAL__ = { film, clock, compiled, ripple, store: useExperienceStore, audio: audioManager, sceneAudio, debugCounters };
   }, []);
 
   const playing = status === "playing" || status === "ended";
@@ -109,6 +110,7 @@ export function Experience() {
         <h1 className="sr-only">KAAL: The Many Forms of Krishna</h1>
         <p className="sr-only">An animated film about Krishna, played in the browser. Sound is recommended.</p>
         {caps?.supported ? <ExperienceCanvas floatTargets={caps.floatTargets} /> : null}
+        <Captions />
         <EnterGate />
         <Controls visible={!idle} />
         <EngineeringPanel />

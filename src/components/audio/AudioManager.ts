@@ -1,4 +1,4 @@
-import type { AudioBus } from "@/data/cinematicTimeline";
+import type { AudioBus } from "@/data/story";
 import { clamp } from "@/lib/math";
 import type { AudioStatus } from "@/state/experienceStore";
 

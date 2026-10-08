@@ -1,7 +1,9 @@
 import gsap from "gsap";
 import { Color } from "three";
+import { MOODS, type MoodDef } from "@/data/moods";
 import {
   SCENES,
+  type ActorId,
   type AudioCueDef,
   type BeatDef,
   type CameraPose,
@@ -10,9 +12,8 @@ import {
   type ShlokaCueDef,
   type ShotDef,
   type TitleCueDef
-} from "@/data/cinematicTimeline";
-import { LIGHTING, type LightingPreset } from "@/data/lightingPresets";
-import type { FilmState } from "./filmState";
+} from "@/data/story";
+import type { FilmState, RGB } from "./filmState";
 
 export interface CompiledScene {
   def: SceneDef;
@@ -28,11 +29,10 @@ export interface CompiledShot {
   def: ShotDef;
   sceneId: SceneId;
   sceneIndex: number;
-  /** Index across the whole film. */
   index: number;
   start: number;
   end: number;
-  /** False when no camera path has been authored yet: the shot holds the previous pose. */
+  /** False when a shot has no camera path and simply holds the previous one. */
   authored: boolean;
 }
 
@@ -42,7 +42,6 @@ export type Cue =
   | { kind: "title"; at: number; sceneId: SceneId; cue: TitleCueDef }
   | { kind: "beat"; at: number; sceneId: SceneId; cue: BeatDef };
 
-/** One line for the engineering panel: "audio: flute/first-note". */
 export function describeCue(cue: Cue): string {
   switch (cue.kind) {
     case "audio":
@@ -52,21 +51,20 @@ export function describeCue(cue: Cue): string {
     case "title":
       return `title: ${cue.cue.text}`;
     case "beat":
-      return `beat: ${cue.cue.actor} ${cue.cue.action}`;
+      return `beat: ${cue.cue.who} ${cue.cue.action}`;
   }
 }
 
 export interface CompiledFilm {
   scenes: CompiledScene[];
   shots: CompiledShot[];
-  /** Every discrete event, sorted by absolute time. */
   cues: Cue[];
   duration: number;
 }
 
 const sceneDuration = (def: SceneDef) => def.shots.reduce((total, shot) => total + shot.duration, 0);
 
-/** Lay the declarative scenes end to end on one absolute film clock. Pure. */
+/** Lay the scenes end to end on one clock. Pure. */
 export function compileFilm(defs: readonly SceneDef[] = SCENES): CompiledFilm {
   const scenes: CompiledScene[] = [];
   const shots: CompiledShot[] = [];
@@ -103,73 +101,45 @@ export function compileFilm(defs: readonly SceneDef[] = SCENES): CompiledFilm {
   return { scenes, shots, cues, duration: cursor };
 }
 
-/** Index of the last item whose start is <= time. `starts` must be ascending. */
-function indexAt(starts: readonly { start: number }[], time: number) {
+function indexAt(items: readonly { start: number }[], time: number) {
   let low = 0;
-  let high = starts.length - 1;
+  let high = items.length - 1;
   while (low < high) {
     const mid = (low + high + 1) >> 1;
-    if (starts[mid].start <= time) low = mid;
+    if (items[mid].start <= time) low = mid;
     else high = mid - 1;
   }
   return low;
 }
 
 export const sceneIndexAt = (film: CompiledFilm, time: number) => indexAt(film.scenes, time);
+export const shotIndexAt = (film: CompiledFilm, time: number) => indexAt(film.shots, time);
 
 export interface ActorBeat {
   action: BeatDef["action"];
-  /** Film seconds since the beat began. */
   since: number;
-  /** Absolute film time the beat began: a stable identity for "is this the same beat as last frame". */
   at: number;
 }
 
 const beatsByActor = new WeakMap<CompiledFilm, Map<string, { at: number; sceneIndex: number; cue: BeatDef }[]>>();
 
-/** Walking pace, metres per second. Krishna walks unhurried. */
-export const WALK_SPEED = 0.9;
-const TRAVELLING = new Set<BeatDef["action"]>(["WALK", "RUN", "FOLLOW_BUTTERFLY", "MAKHAN_ENTER"]);
-
 /**
- * How far an actor has walked in the current scene by film time t (metres along the way he faces). A pure function of
- * time, like everything else, so the walk is scrubbable and tracking shots can be authored to match it.
+ * What an actor is doing at film time t: the last beat for them, at or before t, in the current scene. A pure
+ * function of time, so any seek or scrub lands in the right pose.
  */
-export function actorTravelAt(film: CompiledFilm, actor: BeatDef["actor"], time: number): number {
-  actorBeatAt(film, actor, time);
-  const list = beatsByActor.get(film)?.get(actor);
-  if (!list) return 0;
-  const scene = sceneIndexAt(film, time);
-  let travelled = 0;
-  for (let i = 0; i < list.length; i += 1) {
-    const beat = list[i];
-    if (beat.sceneIndex !== scene || beat.at > time) continue;
-    if (!TRAVELLING.has(beat.cue.action)) continue;
-    const next = list[i + 1];
-    const end = Math.min(time, next && next.sceneIndex === scene ? next.at : Infinity);
-    travelled += Math.max(0, end - beat.at) * (beat.cue.action === "RUN" ? WALK_SPEED * 2.4 : WALK_SPEED);
-  }
-  return travelled;
-}
-
-/**
- * What an actor is doing at film time t: the latest beat for that actor at or before t, within the current scene.
- * A pure function of time, so performers land in the right state after any seek or scrub. Null before the scene's
- * first beat for that actor.
- */
-export function actorBeatAt(film: CompiledFilm, actor: BeatDef["actor"], time: number): ActorBeat | null {
+export function actorBeatAt(film: CompiledFilm, who: ActorId, time: number): ActorBeat | null {
   let index = beatsByActor.get(film);
   if (!index) {
     index = new Map();
     for (const cue of film.cues) {
       if (cue.kind !== "beat") continue;
-      const list = index.get(cue.cue.actor) ?? [];
+      const list = index.get(cue.cue.who) ?? [];
       list.push({ at: cue.at, sceneIndex: sceneIndexAt(film, cue.at), cue: cue.cue });
-      index.set(cue.cue.actor, list);
+      index.set(cue.cue.who, list);
     }
     beatsByActor.set(film, index);
   }
-  const list = index.get(actor);
+  const list = index.get(who);
   if (!list) return null;
   const scene = sceneIndexAt(film, time);
   let found: (typeof list)[number] | null = null;
@@ -179,14 +149,13 @@ export function actorBeatAt(film: CompiledFilm, actor: BeatDef["actor"], time: n
   }
   return found ? { action: found.cue.action, since: time - found.at, at: found.at } : null;
 }
-export const shotIndexAt = (film: CompiledFilm, time: number) => indexAt(film.shots, time);
 
 // ---------------------------------------------------------------------------------------------------------------
-// Master timeline. Every move is a fromTo with explicit start values, so seeking to any time, in any order, always
-// produces the same state. There are no "to" tweens that depend on where the playhead happened to be.
+// The master timeline. Every move is a fromTo with explicit start values, so seeking anywhere, in any order, gives
+// exactly the same picture.
 // ---------------------------------------------------------------------------------------------------------------
 
-const DEFAULT_POSE: CameraPose = { position: [0, 1.6, 4], target: [0, 0.6, -10], focal: 35, focus: 8 };
+const DEFAULT_POSE: CameraPose = { position: [0, 1.6, 6], target: [0, 1.2, 0], focal: 40, focus: 6 };
 
 const poseVars = (pose: CameraPose) => ({
   px: pose.position[0],
@@ -201,23 +170,38 @@ const poseVars = (pose: CameraPose) => ({
   shake: pose.shake ?? 0
 });
 
-const directional = (block: LightingPreset["key"]) => {
-  const color = new Color(block.color);
-  return { r: color.r, g: color.g, b: color.b, i: block.intensity, az: block.azimuth, el: block.elevation };
+const linear = (hex: number): RGB => {
+  const color = new Color(hex);
+  return { r: color.r, g: color.g, b: color.b };
 };
-const ambientVars = (block: LightingPreset["ambient"]) => {
-  const color = new Color(block.color);
-  return { r: color.r, g: color.g, b: color.b, i: block.intensity };
-};
-const fogVars = (block: LightingPreset["fog"]) => {
-  const color = new Color(block.color);
-  return { r: color.r, g: color.g, b: color.b, d: block.density };
-};
+
+/** A mood's colours, pre-converted to linear, plus its scalars. */
+function moodVars(mood: MoodDef) {
+  return {
+    skyTop: linear(mood.skyTop),
+    skyHorizon: linear(mood.skyHorizon),
+    lamp: linear(mood.lamp),
+    tint: linear(mood.tint),
+    fog: linear(mood.fog),
+    water: linear(mood.water),
+    scalars: {
+      lampX: mood.lampX,
+      lampY: mood.lampY,
+      lampSize: mood.lampSize,
+      fogDensity: mood.fogDensity,
+      stars: mood.stars,
+      clouds: mood.clouds,
+      exposure: mood.exposure,
+      bloom: mood.bloom,
+      vignette: mood.vignette
+    }
+  };
+}
 
 export function buildMasterTimeline(film: CompiledFilm, state: FilmState) {
   const timeline = gsap.timeline({ paused: true, autoRemoveChildren: false, defaults: { ease: "none" } });
 
-  // Camera: one tween per shot, tiling the film.
+  // ---- camera: one tween per shot, tiling the film
   let pose = DEFAULT_POSE;
   for (const shot of film.shots) {
     const from = shot.def.from ?? pose;
@@ -231,29 +215,23 @@ export function buildMasterTimeline(film: CompiledFilm, state: FilmState) {
     pose = to;
   }
 
-  // Lighting: crossfade from the previous preset at every key.
-  let previous: LightingPreset | undefined;
+  // ---- mood: blend between looks
+  let previous: ReturnType<typeof moodVars> | undefined;
   for (const scene of film.scenes) {
-    for (const key of scene.def.lighting) {
-      const to = LIGHTING[key.preset];
+    for (const key of scene.def.mood) {
+      const to = moodVars(MOODS[key.mood]);
       const from = previous ?? to;
       const at = scene.start + key.at;
       const options = { duration: key.blend, ease: "sine.inOut", immediateRender: false };
-      timeline.fromTo(state.light.ambient, ambientVars(from.ambient), { ...ambientVars(to.ambient), ...options }, at);
-      timeline.fromTo(state.light.key, directional(from.key), { ...directional(to.key), ...options }, at);
-      timeline.fromTo(state.light.rim, directional(from.rim), { ...directional(to.rim), ...options }, at);
-      timeline.fromTo(state.light.fog, fogVars(from.fog), { ...fogVars(to.fog), ...options }, at);
-      timeline.fromTo(
-        state.light,
-        { exposure: from.exposure, bloom: from.bloom },
-        { exposure: to.exposure, bloom: to.bloom, ...options },
-        at
-      );
+      for (const channel of ["skyTop", "skyHorizon", "lamp", "tint", "fog", "water"] as const) {
+        timeline.fromTo(state.mood[channel], from[channel], { ...to[channel], ...options }, at);
+      }
+      timeline.fromTo(state.mood, from.scalars, { ...to.scalars, ...options }, at);
       previous = to;
     }
   }
 
-  // Fade to black (a real cut to black is duration ~0).
+  // ---- fade to black
   let fade = 1;
   for (const scene of film.scenes) {
     for (const key of scene.def.fade) {
@@ -267,33 +245,68 @@ export function buildMasterTimeline(film: CompiledFilm, state: FilmState) {
     }
   }
 
-  // World time, audio muffle and wind. Each property is tracked separately so a key may set only some of them.
-  const world = { timeScale: 1, muffle: 0, wind: 0.2 };
-  for (const scene of film.scenes) {
-    for (const key of scene.def.world) {
-      const from: Partial<typeof world> = {};
-      const to: Partial<typeof world> = {};
-      for (const prop of ["timeScale", "muffle", "wind"] as const) {
-        const next = key[prop];
+  // ---- effects (magic, cosmos, bokeh) and the world clock
+  const fx = { magic: 0, cosmos: 0, bokeh: 1.4 };
+  const world = { timeScale: 1, muffle: 0, wind: 0.25 };
+  const track = <T extends object>(
+    keys: readonly (T & { at: number; duration: number })[],
+    carry: Record<string, number>,
+    targetObject: object,
+    at: number
+  ) => {
+    for (const key of keys) {
+      const from: Record<string, number> = {};
+      const to: Record<string, number> = {};
+      for (const prop of Object.keys(carry)) {
+        const next = (key as Record<string, number | undefined>)[prop];
         if (next === undefined) continue;
-        from[prop] = key.duration === 0 ? next : world[prop];
+        from[prop] = key.duration === 0 ? next : carry[prop];
         to[prop] = next;
-        world[prop] = next;
+        carry[prop] = next;
       }
       if (Object.keys(to).length === 0) continue;
-      timeline.fromTo(
-        state.world,
-        from,
-        { ...to, duration: key.duration, ease: "sine.inOut", immediateRender: false },
-        scene.start + key.at
-      );
+      timeline.fromTo(targetObject, from, { ...to, duration: key.duration, ease: "sine.inOut", immediateRender: false }, at + key.at);
+    }
+  };
+  for (const scene of film.scenes) {
+    track(scene.def.fx, fx, state.fx, scene.start);
+    track(scene.def.world, world, state.world, scene.start);
+  }
+
+  // ---- actors: where Krishna stands, how big he is, whether he is here at all
+  const carried: Record<ActorId, Record<string, number>> = {
+    bal: { x: 0, y: 0, z: 0, scale: 1, facing: 0, opacity: 0, lookAtPointer: 1 },
+    kishore: { x: 0, y: 0, z: 0, scale: 1, facing: 0, opacity: 0, lookAtPointer: 1 }
+  };
+  for (const scene of film.scenes) {
+    for (const key of scene.def.actors) {
+      const at = scene.start + key.at;
+      const state0 = carried[key.who];
+      if (key.set) {
+        const from = { ...key.set } as Record<string, number>;
+        timeline.fromTo(state.actors[key.who], from, { ...from, duration: 0.001, immediateRender: false }, at);
+        Object.assign(state0, key.set);
+      }
+      if (key.to) {
+        const from: Record<string, number> = {};
+        const to: Record<string, number> = {};
+        for (const [prop, value] of Object.entries(key.to)) {
+          from[prop] = state0[prop] ?? 0;
+          to[prop] = value as number;
+          state0[prop] = value as number;
+        }
+        timeline.fromTo(
+          state.actors[key.who],
+          from,
+          { ...to, duration: key.duration ?? 1, ease: key.ease ?? "sine.inOut", immediateRender: false },
+          at
+        );
+      }
     }
   }
 
   // Prime: fromTo tweens with immediateRender off do nothing until the playhead moves, so render to the end and back.
-  // Afterwards every property holds its film-start value, even before the first frame plays.
   timeline.time(timeline.duration(), true);
   timeline.time(0, true);
-
   return timeline;
 }

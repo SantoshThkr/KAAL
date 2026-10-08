@@ -1,4 +1,4 @@
-import type { AudioBus } from "@/data/cinematicTimeline";
+import type { AudioBus } from "@/data/story";
 import { SOUNDS } from "@/data/audioManifest";
 import type { CompiledFilm } from "./timelineBuilder";
 

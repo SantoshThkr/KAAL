@@ -64,11 +64,11 @@ export function PostFX({ floatTargets }: { floatTargets: boolean }) {
   const depthOfField = useRef<DepthOfFieldEffect>(null);
 
   useFrame(() => {
-    const { light, fx, cam } = film;
-    if (exposure.current) exposure.current.gain = light.exposure;
+    const { mood, fx, cam } = film;
+    if (exposure.current) exposure.current.gain = mood.exposure;
     if (fade.current) fade.current.gain = 1 - fx.fade;
-    if (bloom.current) bloom.current.intensity = light.bloom;
-    if (vignette.current) vignette.current.darkness = fx.vignette;
+    if (bloom.current) bloom.current.intensity = mood.bloom;
+    if (vignette.current) vignette.current.darkness = mood.vignette;
     if (noise.current) noise.current.blendMode.opacity.value = fx.grain;
     if (chromatic.current) chromatic.current.offset.set(fx.chromatic, fx.chromatic);
     const dof = depthOfField.current;

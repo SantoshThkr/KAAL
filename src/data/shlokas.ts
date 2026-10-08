@@ -188,5 +188,8 @@ export const SHLOKAS: readonly Shloka[] = [
 
 export const SHLOKA_BY_ID = Object.fromEntries(SHLOKAS.map((shloka) => [shloka.id, shloka])) as Record<ShlokaId, Shloka>;
 
+/** How a verse is credited on screen, e.g. "भगवद्गीता 4.7". */
+export const scriptureLabel = (shloka: Shloka) => `भगवद्गीता ${shloka.chapter}.${shloka.verse}`;
+
 /** The verse as one Devanagari string, one pāda per line. This is exactly what the hash covers. */
 export const sanskritText = (shloka: Shloka) => shloka.sanskrit.join("\n").normalize("NFC");

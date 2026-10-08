@@ -21,7 +21,7 @@ const ROWS = [
   ["world", "WORLD"],
   ["audio", "AUDIO"],
   ["quality", "QUALITY"],
-  ["assets", "KRISHNA ASSETS"],
+  ["assets", "KRISHNA"],
   ["shlokas", "SHLOKAS"],
   ["cue", "LAST CUE"],
   ["renders", "REACT COMMITS"]
@@ -62,7 +62,7 @@ export function EngineeringPanel() {
         world: `time x${world.timeScale.toFixed(2)} · muffle ${world.muffle.toFixed(2)} · wind ${world.wind.toFixed(2)}`,
         audio: `${audioManager.status} · energy ${audio.energy.toFixed(2)} · L ${audio.low.toFixed(2)} M ${audio.mid.toFixed(2)} H ${audio.high.toFixed(2)}`,
         quality: `${store.quality}${store.qualityLocked ? " (pinned)" : ""} · pixel ratio ${stats.pixelRatio.toFixed(2)}`,
-        assets: `kishore ${store.characters.kishore.toUpperCase()} · bal ${store.characters.bal.toUpperCase()}`,
+        assets: `art ${store.artReady ? "READY (drawn in code)" : "RASTERISING"} · bal ${(film.actors.bal.opacity * 100).toFixed(0)}% · kishore ${(film.actors.kishore.opacity * 100).toFixed(0)}%`,
         shlokas: shlokaSummary(),
         cue: store.lastCue,
         renders: `dom ${debugCounters.domCommits} · canvas ${debugCounters.canvasCommits} · store writes ${debugCounters.storeWrites}`

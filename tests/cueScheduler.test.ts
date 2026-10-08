@@ -5,7 +5,7 @@ import type { Cue } from "@/lib/timelineBuilder";
 const audio = (at: number, id = `cue-${at}`): Cue => ({
   kind: "audio",
   at,
-  sceneId: "INTRO",
+  sceneId: "OPENING",
   cue: { at, bus: "environment", id, action: "oneShot" }
 });
 const ids = (cues: readonly Cue[]) => cues.map((cue) => (cue.kind === "audio" ? cue.cue.id : cue.kind));

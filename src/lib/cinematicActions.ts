@@ -1,7 +1,8 @@
 import { audioManager } from "@/components/audio/AudioManager";
-import type { SceneId } from "@/data/cinematicTimeline";
+import type { SceneId } from "@/data/story";
 import { sceneIndexAt } from "@/lib/timelineBuilder";
-import { clock, compiled } from "@/state/film";
+import { clock, compiled, film, sceneAudio } from "@/state/film";
+import { ripple } from "@/components/world/World";
 import { useExperienceStore } from "@/state/experienceStore";
 
 /** Pressing "previous scene" more than this far into a scene restarts it; sooner goes to the one before. */
@@ -67,3 +68,16 @@ export function stepScene(direction: 1 | -1) {
 
 /** The "skip" control: on to the next scene. */
 export const skip = () => stepScene(1);
+
+/**
+ * The viewer touches the world: rings spread across the Yamuna from wherever Krishna stands, and the flute answers
+ * softly. Interaction, not a control.
+ */
+export function touchWater() {
+  if (!isActive()) return;
+  const krishna = film.actors.kishore.opacity > film.actors.bal.opacity ? film.actors.kishore : film.actors.bal;
+  ripple.x = krishna.x + film.pointer.x * 3;
+  ripple.z = -9 + film.pointer.y * 3;
+  ripple.start = film.worldTime;
+  sceneAudio.playOnce("flute/call-hint", -14);
+}

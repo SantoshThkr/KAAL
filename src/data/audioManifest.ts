@@ -1,4 +1,4 @@
-import type { AudioBus } from "./cinematicTimeline";
+import type { AudioBus } from "./story";
 
 /**
  * Every sound the film can play, keyed by the id the timeline's audio cues use. Files live in public/audio/<id>.m4a.
@@ -28,10 +28,8 @@ export const SOUNDS: Record<string, SoundDef> = {
   "ambience/yamuna-evening": { bus: "ambience", gain: -6, loop: true, fadeIn: 3, fadeOut: 3 },
   "ambience/vrindavan-dawn": { bus: "ambience", gain: -6, loop: true, fadeIn: 3, fadeOut: 3 },
   "ambience/vrindavan-evening": { bus: "ambience", gain: -6, loop: true, fadeIn: 3, fadeOut: 3 },
-  "ambience/storm-rain": { bus: "ambience", gain: 4, loop: true, fadeIn: 2, fadeOut: 3 },
   "ambience/night-crickets": { bus: "ambience", gain: 4, loop: true, fadeIn: 3, fadeOut: 3 },
   "ambience/wind-harsh": { bus: "ambience", gain: -4, loop: true, fadeIn: 3, fadeOut: 3 },
-  "ambience/battlefield-wind": { bus: "ambience", gain: -4, loop: true, fadeIn: 3, fadeOut: 3 },
   "ambience/cosmic-wind": { bus: "ambience", gain: -8, loop: true, fadeIn: 3, fadeOut: 3 }
 };
 
@@ -39,7 +37,6 @@ export const SOUNDS: Record<string, SoundDef> = {
 export const SOUND_FILES: Record<string, string> = {
   "ambience/yamuna-evening": "ambience/yamuna-night",
   "ambience/vrindavan-evening": "ambience/vrindavan-dawn",
-  "ambience/battlefield-wind": "ambience/wind-harsh",
   "ambience/cosmic-wind": "ambience/wind-harsh"
 };
 

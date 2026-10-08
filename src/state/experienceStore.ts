@@ -1,6 +1,5 @@
 import { create } from "zustand";
-import type { SceneId } from "@/data/cinematicTimeline";
-import type { CharacterId } from "@/data/characters";
+import type { SceneId } from "@/data/story";
 import { stepTier, type QualityTier } from "@/lib/quality";
 
 /**
@@ -8,8 +7,6 @@ import { stepTier, type QualityTier } from "@/lib/quality";
  * camera, lights, audio energy, FPS) lives in `film` (state/film.ts) and is read by refs and uniforms, never by React.
  */
 export type Status = "booting" | "ready" | "playing" | "ended" | "unsupported";
-/** checking -> missing | loading -> ready | error */
-export type CharacterState = "checking" | "missing" | "loading" | "ready" | "error";
 export type AudioStatus = "idle" | "running" | "suspended" | "unsupported";
 
 interface ExperienceState {
@@ -27,7 +24,8 @@ interface ExperienceState {
   paused: boolean;
   activeClip: string;
   lastCue: string;
-  characters: Record<CharacterId, CharacterState>;
+  /** The art is drawn in code; this is only true once it has been rasterised. */
+  artReady: boolean;
 
   setStatus: (status: Status) => void;
   setPosition: (sceneId: SceneId, shotId: string, authored: boolean) => void;
@@ -40,13 +38,13 @@ interface ExperienceState {
   setPaused: (paused: boolean) => void;
   setActiveClip: (activeClip: string) => void;
   setLastCue: (lastCue: string) => void;
-  setCharacter: (id: CharacterId, state: CharacterState) => void;
+  setArtReady: (artReady: boolean) => void;
 }
 
 export const useExperienceStore = create<ExperienceState>((set) => ({
   status: "booting",
-  sceneId: "INTRO",
-  shotId: "black",
+  sceneId: "OPENING",
+  shotId: "dark",
   shotAuthored: true,
   quality: "medium",
   qualityLocked: false,
@@ -55,9 +53,9 @@ export const useExperienceStore = create<ExperienceState>((set) => ({
   reducedMotion: false,
   engineering: false,
   paused: false,
-  activeClip: "none (no character loaded)",
+  activeClip: "idle",
   lastCue: "none",
-  characters: { kishore: "checking", bal: "checking" },
+  artReady: false,
 
   setStatus: (status) => set({ status }),
   setPosition: (sceneId, shotId, shotAuthored) => set({ sceneId, shotId, shotAuthored }),
@@ -70,5 +68,5 @@ export const useExperienceStore = create<ExperienceState>((set) => ({
   setPaused: (paused) => set({ paused }),
   setActiveClip: (activeClip) => set({ activeClip }),
   setLastCue: (lastCue) => set({ lastCue }),
-  setCharacter: (id, state) => set((current) => ({ characters: { ...current.characters, [id]: state } }))
+  setArtReady: (artReady) => set({ artReady })
 }));

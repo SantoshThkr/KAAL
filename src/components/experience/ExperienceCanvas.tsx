@@ -6,15 +6,13 @@ import { PerformanceMonitor } from "@react-three/drei";
 import { NoToneMapping } from "three";
 import { CameraRig } from "@/components/camera/CameraRig";
 import { CinematicCamera } from "@/components/camera/CinematicCamera";
-import { DebugStage } from "@/components/debug/DebugStage";
 import { PostFX } from "@/components/effects/PostFX";
-import { SceneDirector } from "@/components/scenes/SceneDirector";
-import { CharacterPreloader } from "@/components/krishna/CharacterPreloader";
 import { useQuality } from "@/hooks/useQuality";
+import { isEngineeringAllowed } from "@/lib/env";
 import { debugCounters } from "@/lib/debugCounters";
 import { useExperienceStore } from "@/state/experienceStore";
+import { Stage } from "@/components/world/Stage";
 import { CinematicController } from "./CinematicController";
-import { LightingRig } from "./LightingRig";
 
 export function ExperienceCanvas({ floatTargets }: { floatTargets: boolean }) {
   const profile = useQuality();
@@ -25,10 +23,11 @@ export function ExperienceCanvas({ floatTargets }: { floatTargets: boolean }) {
     <Canvas
       className="stage-canvas"
       dpr={profile.dpr}
-      shadows={profile.shadows ? "percentage" : false}
       camera={{ fov: 30, near: 0.1, far: 6000, position: [0, 1.6, 4] }}
       gl={{ antialias: false, alpha: false, stencil: false, powerPreference: "high-performance", toneMapping: NoToneMapping }}
-      onCreated={({ gl }) => {
+      onCreated={({ gl, scene, camera }) => {
+        // Engineering handle: lets scripted checks look at the real scene graph.
+        if (isEngineeringAllowed()) Object.assign(window as unknown as Record<string, unknown>, { __KAAL_SCENE__: { scene, camera, gl } });
         // The composer renders many passes per frame; the controller reads and resets the counters once per frame.
         gl.info.autoReset = false;
         gl.setClearColor(0x000000, 1);
@@ -39,10 +38,7 @@ export function ExperienceCanvas({ floatTargets }: { floatTargets: boolean }) {
         <CinematicCamera />
         <CinematicController />
         <CameraRig />
-        <LightingRig />
-        <CharacterPreloader />
-        <SceneDirector />
-        <DebugStage />
+        <Stage />
         <PostFX floatTargets={floatTargets} />
       </Profiler>
     </Canvas>

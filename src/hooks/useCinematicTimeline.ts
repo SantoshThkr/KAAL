@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect } from "react";
-import { DEBUG_KEY_SCENES } from "@/data/cinematicTimeline";
+import { SCENE_KEYS } from "@/data/story";
 import { nudge, replay, seekScene, stepScene, togglePause } from "@/lib/cinematicActions";
 import { SECONDS_PER_PIXEL } from "@/lib/filmClock";
 import { isEngineeringAllowed } from "@/lib/env";
+import { film } from "@/state/film";
+import { touchWater } from "@/lib/cinematicActions";
 import { useExperienceStore } from "@/state/experienceStore";
 
 /** Touch drags are shorter than wheel travel for the same intent. */
@@ -95,12 +97,26 @@ export function useCinematicTimeline() {
           replay();
           return;
         default: {
-          const scene = DEBUG_KEY_SCENES[event.key];
+          const scene = SCENE_KEYS[event.key];
           if (scene && isEngineeringAllowed()) seekScene(scene);
         }
       }
     };
 
+    // The pointer: Krishna's gaze follows it, and the camera drifts a little with it.
+    const onPointerMove = (event: PointerEvent) => {
+      film.pointerTarget.x = (event.clientX / window.innerWidth) * 2 - 1;
+      film.pointerTarget.y = -((event.clientY / window.innerHeight) * 2 - 1);
+    };
+    // A click touches the water where he is: rings spread, and the flute answers.
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target instanceof HTMLElement ? event.target : null;
+      if (target?.closest("button, a")) return;
+      touchWater();
+    };
+
+    window.addEventListener("pointermove", onPointerMove, { passive: true });
+    window.addEventListener("pointerdown", onPointerDown);
     window.addEventListener("wheel", onWheel, { passive: false });
     window.addEventListener("touchstart", onTouchStart, { passive: true });
     window.addEventListener("touchmove", onTouchMove, { passive: false });
@@ -108,6 +124,8 @@ export function useCinematicTimeline() {
     window.addEventListener("touchcancel", onTouchEnd, { passive: true });
     window.addEventListener("keydown", onKeyDown);
     return () => {
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerdown", onPointerDown);
       window.removeEventListener("wheel", onWheel);
       window.removeEventListener("touchstart", onTouchStart);
       window.removeEventListener("touchmove", onTouchMove);

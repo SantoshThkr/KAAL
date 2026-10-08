@@ -3,7 +3,8 @@
 import { useEffect, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { audioManager } from "@/components/audio/AudioManager";
-import { buildMasterTimeline, describeCue, shotIndexAt } from "@/lib/timelineBuilder";
+import { damp } from "@/lib/math";
+import { actorBeatAt, buildMasterTimeline, describeCue, shotIndexAt } from "@/lib/timelineBuilder";
 import { clock, compiled, cueBus, cues, film, sceneAudio } from "@/state/film";
 import { useExperienceStore } from "@/state/experienceStore";
 
@@ -110,15 +111,22 @@ export function CinematicController() {
       }
     }
 
-    // 7. Audio follows film time: the right clips at the right offsets, whatever the viewer did.
+    // 7. The pointer, smoothed: his gaze and the camera both lean toward it.
+    film.pointer.x = damp(film.pointer.x, film.pointerTarget.x, 4, dt);
+    film.pointer.y = damp(film.pointer.y, film.pointerTarget.y, 4, dt);
+
+    // 8. What Krishna is doing now: a pure function of film time, so scrubbing lands in the right pose.
+    for (const who of ["bal", "kishore"] as const) {
+      const beat = actorBeatAt(compiled, who, clock.time);
+      film.actors[who].action = beat?.action ?? "idle";
+    }
+
+    // 9. Audio follows film time: the right clips at the right offsets, whatever the viewer did.
     sceneAudio.update(clock.time, clock.rate, store.status === "playing" && !clock.paused);
     audioManager.readEnergy(film.audio, dt);
     audioManager.setMuffle(film.world.muffle);
 
-    if (store.status === "booting" && ++warmup.current >= WARMUP_FRAMES) {
-      const settling = Object.values(store.characters).some((state) => state === "checking" || state === "loading");
-      if (!settling) store.setStatus("ready");
-    }
+    if (store.status === "booting" && ++warmup.current >= WARMUP_FRAMES && store.artReady) store.setStatus("ready");
   }, -100);
 
   return null;
